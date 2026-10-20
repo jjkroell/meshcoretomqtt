@@ -21,3 +21,6 @@ class MeshCoreBridge:
 
     def handle_signal(self, signum: int, frame: Any) -> None:
         runner.handle_signal(self.state, signum, frame)
+
+    def handle_neighbors_signal(self, signum: int, frame: Any) -> None:
+        runner.handle_neighbors_signal(self.state, signum, frame)

@@ -43,6 +43,7 @@ status = "meshcore/{IATA}/{PUBLIC_KEY}/status"
 packets = "meshcore/{IATA}/{PUBLIC_KEY}/packets"
 debug = "meshcore/{IATA}/{PUBLIC_KEY}/debug"
 raw = "meshcore/{IATA}/{PUBLIC_KEY}/raw"
+neighbors = "meshcore/{IATA}/{PUBLIC_KEY}/neighbors"
 
 [remote_serial]
 # Enable remote serial command execution via MQTT
@@ -71,6 +72,35 @@ command_timeout = 10
 
 # Commands that are blocked for security reasons (case-insensitive prefix match)
 disallowed_commands = ["get prv.key", "set prv.key", "erase", "password"]
+
+[neighbors]
+# Publish this repeater's zero-hop neighbour table to the "neighbors" topic
+# (same payload as the observer firmware / openHop / meshcore-packet-capture).
+# Built from zero-hop repeater adverts and node-discover responses the repeater
+# hears; each cycle first runs `discover.neighbors` so every repeater in range
+# answers. Off by default, AND each broker must opt in with `neighbors = true`
+# (some brokers reject unknown topics). Send SIGUSR1 to run a cycle now:
+#   sudo systemctl kill -s USR1 mctomqtt
+enabled = false
+
+# Hours between cycles (12-336; out-of-range values fall back to 24)
+interval_hours = 24
+
+# Send `discover.neighbors` each cycle (needs firmware that has the command).
+# false = publish only what was overheard.
+discover = true
+
+# Seconds to collect discover responses before publishing
+discover_window = 60
+
+# Leave out neighbours not heard for this many hours
+max_age_hours = 24
+
+# Most rows per table (stock repeater builds keep 50)
+max_neighbors = 50
+
+# Seconds after startup before the first cycle
+startup_delay = 600
 
 [update]
 # Source repository and branch for updates
@@ -115,6 +145,9 @@ branch = "main"
 # method = "password"        # "password", "token", or "none"
 # username = "user"
 # password = "pass"
+#
+# Publish the neighbour table to this broker (see [neighbors]; default false)
+# neighbors = false
 #
 # Per-broker topic overrides (optional)
 # [broker.topics]

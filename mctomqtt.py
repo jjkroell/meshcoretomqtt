@@ -41,5 +41,8 @@ if __name__ == "__main__":
     # Ensure signals from systemd (SIGTERM) and ctrl-c (SIGINT) are handled
     signal.signal(signal.SIGTERM, bridge.handle_signal)
     signal.signal(signal.SIGINT, bridge.handle_signal)
+    # SIGUSR1 runs a neighbours cycle now (e.g. `systemctl kill -s USR1 mctomqtt`)
+    if hasattr(signal, 'SIGUSR1'):
+        signal.signal(signal.SIGUSR1, bridge.handle_neighbors_signal)
 
     bridge.run()

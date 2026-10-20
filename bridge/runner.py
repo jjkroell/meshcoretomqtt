@@ -15,6 +15,7 @@ from config_loader import log_config_sources
 from . import serial_connection
 from . import message_parser
 from . import background
+from . import neighbors
 from .auth_provider import MeshCoreAuthProvider
 from .mqtt_publish import publish_status
 
@@ -45,6 +46,15 @@ def handle_signal(state: BridgeState, signum: int, frame: Any) -> None:
     """Signal handler to trigger graceful shutdown."""
     logger.info(f"Received signal {signum}, shutting down...")
     state.should_exit = True
+
+
+def handle_neighbors_signal(state: BridgeState, signum: int, frame: Any) -> None:
+    """Signal handler: run a neighbours cycle now instead of at the next interval."""
+    if state.neighbors_enabled:
+        logger.info("Received signal %s, running a neighbours cycle now", signum)
+        state.neighbors_now.set()
+    else:
+        logger.info("Received signal %s, but [neighbors] is not enabled", signum)
 
 
 def wait_for_system_time_sync(state: BridgeState) -> bool:
@@ -171,6 +181,15 @@ def run(state: BridgeState) -> None:
     )
     stats_thread.start()
     logger.debug("[STATS] Started statistics logging thread")
+
+    # Neighbours publisher (off unless [neighbors] enabled = true)
+    if state.neighbors_enabled:
+        threading.Thread(
+            target=neighbors.neighbors_loop,
+            args=(state,),
+            daemon=True,
+            name="Neighbors"
+        ).start()
 
     # Serial watchdog: force reconnect if no data received for this many seconds
     serial_cfg = state.config.get('serial', {})

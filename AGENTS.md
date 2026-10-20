@@ -45,6 +45,7 @@ The runtime codebase is a `bridge/` Python package with a thin entry point (proj
   - **`mqtt_publish.py`** — `safe_publish()`, `build_status_message()`, `publish_status()`
   - **`message_parser.py`** — `RAW_PATTERN`, `PACKET_PATTERN`, `parse_and_publish()`
   - **`remote_serial.py`** — Remote serial command handling, nonce management, JWT validation
+  - **`neighbors.py`** — Zero-hop neighbour table from RX adverts/discover responses, `discover.neighbors` cycle thread, publish to opted-in brokers' `neighbors` topic (SIGUSR1 = run now)
   - **`background.py`** — `stats_logging_loop()`, `websocket_ping_loop()`
   - **`mqtt_manager.py`** — `MqttManager` class orchestrating broker connections, reconnection, callbacks
   - **`runner.py`** — `run()` main loop, `handle_signal()`, `wait_for_system_time_sync()`
@@ -75,7 +76,7 @@ Configuration uses TOML files with a layered override system. Python 3.11+ `toml
 
 **Override mechanism:** Drop-in files are deep-merged over the base config. Nested dicts are merged recursively; `[[broker]]` arrays are merged by `name` field.
 
-**Key config sections:** `[general]`, `[serial]`, `[topics]`, `[remote_serial]`, `[update]`, `[[broker]]` with nested `[broker.tls]` and `[broker.auth]`.
+**Key config sections:** `[general]`, `[serial]`, `[topics]`, `[remote_serial]`, `[neighbors]`, `[update]`, `[[broker]]` with nested `[broker.tls]` and `[broker.auth]`.
 
 **Broker auth methods:** `"password"` (username/password), `"token"` (JWT from device Ed25519 key), or `"none"`.
 

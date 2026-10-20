@@ -109,4 +109,16 @@ class BridgeState:
         # Message parsing state
         self.last_raw: str | None = None
 
+        # Neighbour table (see neighbors.py). None when the feature is off, so
+        # the per-packet hook costs nothing for installs that don't use it.
+        from .neighbors import NeighborTable, DEFAULT_MAX_NEIGHBORS
+        nb_cfg = config.get('neighbors', {})
+        self.neighbors_enabled: bool = bool(isinstance(nb_cfg, dict) and nb_cfg.get('enabled', False))
+        self.neighbor_table: NeighborTable | None = (
+            NeighborTable(int(nb_cfg.get('max_neighbors', DEFAULT_MAX_NEIGHBORS)))
+            if self.neighbors_enabled else None
+        )
+        # Set by SIGUSR1 to run a neighbours cycle immediately.
+        self.neighbors_now: threading.Event = threading.Event()
+
         logger.info("Configuration loaded from TOML")

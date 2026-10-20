@@ -387,6 +387,43 @@ command_timeout = 10
 
 **Note:** Ensure your system clock is synchronized (NTP) for JWT expiry verification.
 
+### Neighbour Table (optional)
+
+Publishes the repeater's **zero-hop neighbour table** to
+`meshcore/{IATA}/{PUBLIC_KEY}/neighbors`, in the same format as the observer
+firmware's `WITH_MQTT_NEIGHBORS` feature, openHop, meshcore-packet-capture and
+meshcore-bot. Analyzers use it to show measured RF links (who hears whom, and
+at what SNR) instead of inferring them from packet paths.
+
+Stock repeater firmware keeps a neighbour table, but its `neighbors` CLI reply
+is truncated to a handful of entries with 4-byte key prefixes. So this script
+rebuilds the table the way the firmware does, from packets the repeater logs:
+
+- **zero-hop repeater adverts** (signature-verified, ignoring companion "shares"), and
+- **zero-hop node-discover responses**, which carry the responder's full key.
+
+Each cycle sends `discover.neighbors` so every repeater in range answers within
+about a minute, then publishes. Cost: one zero-hop request plus the replies,
+once a day by default. Region scopes are not collected (stock firmware has no
+CLI command for them), so `scopes` is empty.
+
+**Off by default, twice:** enable the feature, and opt in each broker that
+should receive it (some brokers reject unknown topics):
+
+```toml
+[neighbors]
+enabled = true
+interval_hours = 24    # 12-336
+
+[[broker]]
+name = "my-analyzer"
+neighbors = true
+```
+
+Run a cycle immediately with `sudo systemctl kill -s USR1 mctomqtt`. Repeaters
+whose firmware lacks `discover.neighbors` still publish whatever was overheard.
+See `[neighbors]` in `config.toml.example` for every option.
+
 ## Running the Script
 
 The installer offers three deployment options:

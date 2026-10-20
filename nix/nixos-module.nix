@@ -30,6 +30,7 @@
         keepalive = broker.keepalive or 60;
         qos = broker.qos or 0;
         retain = broker.retain or true;
+        neighbors = broker.neighbors or false;
         tls = {
           enabled = useTls;
           verify = tlsVerify;
@@ -110,6 +111,12 @@
         packets = "meshcore/{IATA}/{PUBLIC_KEY}/packets";
         debug = "meshcore/{IATA}/{PUBLIC_KEY}/debug";
         raw = "meshcore/{IATA}/{PUBLIC_KEY}/raw";
+        neighbors = "meshcore/{IATA}/{PUBLIC_KEY}/neighbors";
+      };
+
+      neighbors = {
+        enabled = cfg.settings.neighbors-enabled or false;
+        interval_hours = cfg.settings.neighbors-interval-hours or 24;
       };
 
       remote_serial = {

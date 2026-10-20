@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from . import topics
 from .mqtt_publish import safe_publish
+from .neighbors import observe_packet
 
 if TYPE_CHECKING:
     from .state import BridgeState
@@ -88,6 +89,9 @@ def parse_and_publish(state: BridgeState, line: str) -> None:
 
             if packet_match.group(6) == "D" and packet_match.group(13):
                 payload["path"] = packet_match.group(13)
+
+            # Zero-hop adverts / discover responses feed the neighbour table.
+            observe_packet(state, state.last_raw, packet_match.group(8))
 
         message.update(payload)
         safe_publish(state, "packets", json.dumps(message))
