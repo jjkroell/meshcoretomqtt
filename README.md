@@ -407,30 +407,54 @@ about a minute, then publishes. Cost: one zero-hop request plus the replies,
 once a day by default. Region scopes are not collected (stock firmware has no
 CLI command for them), so `scopes` is empty.
 
-**Off by default, twice:** enable the feature, and opt in each broker that
-should receive it (some brokers reject unknown topics). Add this to
+**Off by default, twice:** turn the feature on, and mark each broker that
+should receive it (some brokers reject unknown topics). Put both in
 `/etc/mctomqtt/config.d/99-user.toml`:
 
 ```toml
 [neighbors]
 enabled = true
 interval_hours = 24    # 12-336
+```
 
+How you mark a broker depends on where that broker is defined.
+
+**A broker you defined yourself** (its `[[broker]]` block, with `server`,
+`port` and so on, is already in `99-user.toml`): add one line inside that
+block. Nothing else has to match.
+
+```toml
 [[broker]]
-name = "my-analyzer"   # must match the name of an existing [[broker]]
+name = "my-analyzer"
+enabled = true
+server = "mqtt.example.com"
+# ...the rest of your existing settings...
+neighbors = true       # <- add this line
+```
+
+**A broker from a preset** (defined in `config.d/10-<preset>.toml`, which you
+shouldn't edit because updates replace it): add a short block to
+`99-user.toml` with the **same `name`** as the preset's broker and just the
+setting you're changing.
+
+```toml
+[[broker]]
+name = "meshrank"     # exactly the preset broker's name
 neighbors = true
 ```
 
-Broker blocks are merged by `name`, so a block with just `name` and
-`neighbors = true` switches it on for a broker you already have (including one
-from a preset in `config.d/10-*.toml`). A name that matches nothing adds a new,
-incomplete broker instead. Check your broker names with
-`grep -h '^name' /etc/mctomqtt/config.d/*.toml`.
+Why the name matters here: `[[broker]]` is a list, and files in `config.d/` are
+merged in alphabetical order. The only way to say "change that broker, don't
+add a new one" is the name. A block whose `name` matches an earlier broker is
+merged into it; a block with any other name is added as a **new** broker, and
+with no `server` it doesn't work, while the broker you meant stays unmarked.
+List the names you have with `grep -h '^name' /etc/mctomqtt/config.d/*.toml`.
 
 Then restart (`sudo systemctl restart mctomqtt`). The log shows
 `[NEIGHBORS] Enabled: every 24h, first in 600s; N broker(s) opted in` at
-startup; if N is 0, the broker name didn't match. To run a cycle now instead of
-waiting, use `sudo systemctl kill -s USR1 mctomqtt`; about a minute later the
+startup. If N is 0, no broker is marked: check that `neighbors = true` is inside
+the right block, or that the preset override's `name` matches exactly. To run a
+cycle now instead of waiting, use `sudo systemctl kill -s USR1 mctomqtt`; about a minute later the
 log shows `[NEIGHBORS] Published <n> neighbour(s) to <m> broker(s)`.
 
 The topic defaults to `meshcore/{IATA}/{PUBLIC_KEY}/neighbors` (or the broker's
