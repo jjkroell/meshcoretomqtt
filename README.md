@@ -408,7 +408,8 @@ once a day by default. Region scopes are not collected (stock firmware has no
 CLI command for them), so `scopes` is empty.
 
 **Off by default, twice:** enable the feature, and opt in each broker that
-should receive it (some brokers reject unknown topics):
+should receive it (some brokers reject unknown topics). Add this to
+`/etc/mctomqtt/config.d/99-user.toml`:
 
 ```toml
 [neighbors]
@@ -416,13 +417,27 @@ enabled = true
 interval_hours = 24    # 12-336
 
 [[broker]]
-name = "my-analyzer"
+name = "my-analyzer"   # must match the name of an existing [[broker]]
 neighbors = true
 ```
 
-Run a cycle immediately with `sudo systemctl kill -s USR1 mctomqtt`. Repeaters
-whose firmware lacks `discover.neighbors` still publish whatever was overheard.
-See `[neighbors]` in `config.toml.example` for every option.
+Broker blocks are merged by `name`, so a block with just `name` and
+`neighbors = true` switches it on for a broker you already have (including one
+from a preset in `config.d/10-*.toml`). A name that matches nothing adds a new,
+incomplete broker instead. Check your broker names with
+`grep -h '^name' /etc/mctomqtt/config.d/*.toml`.
+
+Then restart (`sudo systemctl restart mctomqtt`). The log shows
+`[NEIGHBORS] Enabled: every 24h, first in 600s; N broker(s) opted in` at
+startup; if N is 0, the broker name didn't match. To run a cycle now instead of
+waiting, use `sudo systemctl kill -s USR1 mctomqtt`; about a minute later the
+log shows `[NEIGHBORS] Published <n> neighbour(s) to <m> broker(s)`.
+
+The topic defaults to `meshcore/{IATA}/{PUBLIC_KEY}/neighbors` (or the broker's
+packets topic with `packets` swapped for `neighbors`); override it per broker
+with `neighbors` under `[broker.topics]`. Repeaters whose firmware lacks
+`discover.neighbors` still publish whatever was overheard. See `[neighbors]` in
+`config.toml.example` for every option.
 
 ## Running the Script
 
